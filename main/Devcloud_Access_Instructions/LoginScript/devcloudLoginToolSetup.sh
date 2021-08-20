@@ -10,23 +10,63 @@
 #                           #
 #############################
 
-
-
 #global variables
 red=$'\e[1;31m'
 blu=$'\e[1;34m'
 end=$'\e[0m'
-ARRIA10DEVSTACK_RELEASE=("1.2" "1.2.1")
-#noHardwareNodes=("s001-n039" "s001-n040" "s001-n041" "s001-n042" "s001-n043" "s001-n044" "s001-n045")
+ARRIA10DEVSTACK_RELEASE=("1.2.1")
 #Replaced with fpga_compile
-noHardwareNodes=("s001-n045" "s001-n046" "s001-n047" "s001-n048" "s001-n049" "s001-n050" "s001-n051" "s001-n052" "s001-n053" "s001-n054" "s001-n055" "s001-n056" "s001-n057" "s001-n058" "s001-n059" "s001-n060" "s001-n061" "s001-n062" "s001-n063" "s001-n064" "s001-n065" "s001-n066" "s001-n067" "s001-n068" "s001-n069" "s001-n070" "s001-n072" "s001-n073" "s001-n074" "s001-n075" "s001-n076" "s001-n077" "s001-n078" "s001-n079" "s001-n080")
-arria10Nodes=("s005-n001" "s005-n002" "s005-n003" "s005-n004" "s005-n007" "s001-n137" "s001-n138" "s001-n139")
-arria10Nodes12=()
-arria10Nodes121=("s001-n137" "s001-n138" "s001-n139" "s005-n001" "s005-n002" "s005-n003" "s005-n004" "s005-n007")
-arria10_oneAPI_Nodes=("s001-n081" "s001-n082" "s001-n083" "s001-n084" "s001-n085" "s001-n086" "s001-n087" "s001-n088" "s001-n089" "s001-n090" "s001-n091" "s001-n092")
-stratix10Nodes=("s005-n005" "s005-n006" "s005-n008" "s005-n009" "s001-n189")
-stratix10_oneAPI_Nodes=("s001-n142" "s001-n143" "s001-n144")
-allNodes=( "${noHardwareNodes[@]}" "${arria10Nodes[@]}" "${arria10_oneAPI_Nodes[@]}" "${stratix10Nodes[@]}" "${stratix10_oneAPI_Nodes[@]}" )
+declare -a noHardwareNodes
+
+
+
+count=0
+for i in $(pbsnodes |grep -B 4 fpga_compile|grep ^s);do
+	noHardwareNodes[$count]=$i
+	let "count = count + 1"
+done
+#declare -p | grep nohardwarenodes 
+
+declare -a arria10Nodes
+count=0
+for i in $(pbsnodes -s v-qsvr-fpga|grep -B 4 arria10|grep ^s); do
+	arria10Nodes[$count]=$i
+	let "count = count + 1"
+done
+#declare -p | grep arria10Nodes
+
+count=0
+for i in $(pbsnodes -s v-qsvr-fpga|grep -B 4 arria10|grep ^s); do
+	arria10Nodes121[$count]=$i
+	let "count = count + 1"
+done
+
+declare -a arria10_oneAPI_Nodes
+count=0
+for i in $(pbsnodes|grep -B 4 fpga_runtime|grep -B 4 arria10|grep ^s); do
+	arria10_oneAPI_Nodes[$count]=$i
+	let "count = count + 1"
+done
+#declare -p|grep arria10_oneAPI_Nodes
+
+declare -a stratix10Nodes
+count=0
+for i in $(pbsnodes -s v-qsvr-fpga|grep -B 4 darby|grep ^s); do
+	stratix10Nodes[$count]=$i
+	let "count = count + 1"
+done
+#declare -p | grep stratix10nodes
+
+declare -a stratix10_oneAPI_Nodes
+count=0
+for i in $(pbsnodes|grep -B 4 fpga_runtime|grep -B 4 stratix10|grep ^s); do
+	stratix10_oneAPI_Nodes[$count]=$i
+	let "count = count + 1"
+done
+#declare -p | grep stratix10_oneAPI_Nodes
+
+allnodes=( "${nohardwarenodes[@]}" "${arria10Nodes[@]}" "${arria10_oneAPInodes[@]}" "${stratix10Nodes[@]}" "${stratix10_oneAPI_Nodes[@]}" )
+#declare -p | grep allnodes
 
 x2goNodes=("s001-n137" "s001-n138" "s001-n139" "s005-n002" "s005-n003" "s005-n004" "s005-n005" "s005-n006" "s005-n007" "s005-n008")
 
@@ -99,42 +139,11 @@ devcloud_login()
         if [ -z $currentNode ]; then  #if current node is empty
             #pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free"| grep -B 1 '13[0-9]' | grep -o '...$' > ~/nodes.txt
             #node=$(head -n 1 nodes.txt)
-	    if [ -z "$argv1" ]; then
-            	# ask which version of a10 devstack
-            	echo "${blu}Which Arria 10 PAC Development Stack release would you like to source?${end}"
-            	for (( i=0; i<${#ARRIA10DEVSTACK_RELEASE[@]}; i++)); do
-                    echo "${i}) ${ARRIA10DEVSTACK_RELEASE[$i]}"
-            	done
-            	echo
-            	echo -n "Number: "
-            	read -e second_number
-            	until [ ${#ARRIA10DEVSTACK_RELEASE[@]} -gt $second_number ]; do
-                    printf "%s\n" "${red}Invalid Entry. Please input a correct number from the list above. ${end}"
-                    echo -n "Number: "
-                    read -e second_number
-            	done
-	    elif [[ -n "$argv2" && ${ARRIA10DEVSTACK_RELEASE[0]} =~ "$argv2" ]]; then
-		second_number=0
-	    elif [[ -n "$argv2" && ${ARRIA10DEVSTACK_RELEASE[1]} =~ "$argv2" ]]; then
-		second_number=1
-	    else
-                printf "%s\n%s\n" "${red}Invalid Entry. Valid development stack options are: ${ARRIA10DEVSTACK_RELEASE[*]}" "eg: devcloud_login -I A10PAC ${ARRIA10DEVSTACK_RELEASE[0]} ${end}"
-		return 0
-	    fi
-
-	    if [ $second_number -eq 0 ]; then
-            	IFS="|"
-            	readarray availableNodes < <(pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes12[*]}")
-            	readarray availableNodes_on_temp_server < <(pbsnodes | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes12[*]}")
-           	availableNodes=( "${availableNodes[@]}" "${availableNodes_on_temp_server[@]}" )
-            	unset IFS
-	    else
-            	IFS="|"
+        	IFS="|"
             	readarray availableNodes < <(pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes121[*]}")
             	readarray availableNodes_on_temp_server < <(pbsnodes | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes121[*]}")
            	availableNodes=( "${availableNodes[@]}" "${availableNodes_on_temp_server[@]}" )
             	unset IFS
-	    fi
 
             if [ ${#availableNodes[@]} == 0 ]; then #if length of availableNodes is empty then no nodes are available
                 echo
@@ -346,7 +355,7 @@ devcloud_login()
         if [ -z $currentNode ]; then
             IFS="|"
             readarray availableNodesNohardware < <(pbsnodes -a | grep -B 4 'fpga_compile' | grep -B 1 "state = free" | grep -o -E "${noHardwareNodes[*]}")
-            readarray availableNodesArria < <(pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes[*]}")
+	readarray availableNodesArria < <(pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes[*]}")
             readarray availableNodesArria_on_temp_server < <(pbsnodes | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes[*]}")
             readarray availableNodesArria12 < <(pbsnodes -s v-qsvr-fpga | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes12[*]}")
             readarray availableNodesArria12_on_temp_server < <(pbsnodes | grep -B 4 'arria10' | grep -B 1 "state = free" | grep -o -E "${arria10Nodes12[*]}")
@@ -450,7 +459,7 @@ devcloud_login()
                 echo
                 echo --------------------------------------------------------------------------------------
                 printf "%s\n" "${blu}Nodes with Arria 10 OneAPI:${end} (${number_of_available_arria10_oneAPI_nodes} available/${#arria10_oneAPI_Nodes[@]} total)"
-                node_arria10_oneAPI_str=$(echo ${availableNodesArria10_oneAPI_Nodes[@]} ${availableNodesArria10_oneAPI_Nodes_on_temp_server[@]})
+		                node_arria10_oneAPI_str=$(echo ${availableNodesArria10_oneAPI_Nodes[@]} ${availableNodesArria10_oneAPI_Nodes_on_temp_server[@]})
                 printf "${red}$node_arria10_oneAPI_str${end}"
                 echo 
                 echo --------------------------------------------------------------------------------------
@@ -470,18 +479,20 @@ devcloud_login()
                 echo --------------------------------------------------------------------------------------
                 printf "%s\n" "${blu}Nodes with no attached hardware:${end} (${number_of_available_no_hardware_nodes} available/${#noHardwareNodes[@]} total)"
                 #node_no_hardware_str=$(echo ${availableNodesNohardware[@]} ${availableNodesNohardware_on_temp_server[@]})
+
                 node_no_hardware_str=$(echo ${availableNodesNohardware[@]})
                 printf "${red}$node_no_hardware_str${end}"
                 echo 
                 echo --------------------------------------------------------------------------------------
-                printf "%s\n" "${blu}Nodes with Arria 10:${end} (${number_of_available_arria10_nodes} available/${#arria10Nodes[@]} total)"
+		printf "%s\n" "${blu}Nodes with Arria 10:${end} (${number_of_available_arria10_nodes} available/${#arria10Nodes[@]} total)"
 		#node_arria10_str=$(echo ${availableNodesArria[@]} ${availableNodesArria_on_temp_server[@]})
                 #printf "${red}$node_arria10_str${end}"
-                echo "Release 1.2:"
-		node_arria10_12str=$(echo ${availableNodesArria12[@]} ${availableNodesArria12_on_temp_server[@]})
-                printf "${red}$node_arria10_12str${end}"
-                echo
+               # echo "Release 1.2:"
+	#	node_arria10_12str=$(echo ${availableNodesArria12[@]} ${availableNodesArria12_on_temp_server[@]})
+        #        printf "${red}$node_arria10_12str${end}"
+       #         echo
                 echo "Release 1.2.1:"
+
 		node_arria10_121str=$(echo ${availableNodesArria121[@]} ${availableNodesArria121_on_temp_server[@]})
                 printf "${red}$node_arria10_121str${end}"
                 echo
@@ -582,7 +593,7 @@ tools_setup()
     QUARTUS_LITE_RELEASE=("18.1")
     QUARTUS_STANDARD_RELEASE=("18.1")
     QUARTUS_PRO_RELEASE=("17.1" "18.1" "19.2" "19.3" "20.1")
-    #ARRIA10DEVSTACK_RELEASE=("1.2" "1.2.1")
+    #ARRIA10DEVSTACK_RELEASE=("1.2.1")
 
     #defined paths
     GLOB_INTELFPGA_PRO="/glob/development-tools/versions/intelFPGA_pro"
