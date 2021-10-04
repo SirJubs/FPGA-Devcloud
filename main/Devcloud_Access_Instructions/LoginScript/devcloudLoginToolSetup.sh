@@ -417,7 +417,7 @@ devcloud_login()
 		    if [[ -n "$argv3" && $argv3 =~ ".sh" ]]; then
 			qsub -q batch@v-qsvr-fpga -l nodes="$node":ppn=2 $argv3
 	    	    elif [[ -n "$argv3" && $argv3 =~ "walltime=" && $argv4 =~ ".sh" ]]; then
-			qsub -l nodes="$node":ppn=2 -l $argv3 $argv4
+			qsub -q batch@v-qsvr-fpga -l nodes="$node":ppn=2 -l $argv3 $argv4
 		    else
 			if [[ ${x2goNodes[*]} =~ "$node" ]]; then
                             echo
