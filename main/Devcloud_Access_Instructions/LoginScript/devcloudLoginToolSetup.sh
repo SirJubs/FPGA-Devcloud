@@ -590,9 +590,9 @@ error_check()
 
 tools_setup()
 {
-    QUARTUS_LITE_RELEASE=("18.1")
-    QUARTUS_STANDARD_RELEASE=("18.1")
-    QUARTUS_PRO_RELEASE=("17.1" "18.1" "19.2" "19.3" "20.1")
+    QUARTUS_LITE_RELEASE=("21.3" "18.1")
+    QUARTUS_STANDARD_RELEASE=("21.3" "18.1")
+    QUARTUS_PRO_RELEASE=("17.1" "18.1" "19.2" "19.3" "20.1" "21.3")
     #ARRIA10DEVSTACK_RELEASE=("1.2.1")
 
     #defined paths
