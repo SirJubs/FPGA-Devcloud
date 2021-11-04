@@ -19,10 +19,15 @@
 ###########################################################################################################
 
 # Initial Setup
-source /data/intel_fpga/devcloudLoginToolSetup.sh
-tools_setup -t S10DS
+#source /data/intel_fpga/devcloudLoginToolSetup.sh
+#tools_setup -t S10DS
 # Job will exit if directory already exists; no overwrite. No error message.
-[ ! -d ~/S10_OPENCL_AFU ] && mkdir -p ~/S10_OPENCL_AFU || exit 0
+source /glob/development-tools/versions/fpgasupportstack/d5005/2.0.1/inteldevstack/init_env.sh
+source /glob/development-tools/versions/fpgasupportstack/d5005/2.0.1/inteldevstack/hld/init_opencl.sh
+export FPGA_BBB_CCI_SRC=/usr/local/intel-fpga-bbb
+export PATH=/glob/intel-python/python2/bin:${PATH}
+
+[ ! -d ./S10_OPENCL_AFU ] && mkdir -p ./S10_OPENCL_AFU || exit 0
 
 # Copy Over sample design
 cp $OPAE_PLATFORM_ROOT/opencl/exm_opencl_hello_world_x64_linux.tgz S10_OPENCL_AFU

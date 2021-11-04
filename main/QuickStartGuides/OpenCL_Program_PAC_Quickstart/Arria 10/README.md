@@ -1,15 +1,34 @@
 
 
-# Arria 10 PAC: OpenCL Compilation and Programming on the FPGA devcloud using Arria 10 Devstack version 1.2.1
+# Arria 10 PAC: OpenCL Compilation and Programming on the FPGA devcloud using Arria 10 Devstack version 1.3
 
  <br/>
 
-## 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Introduction
+## 1 Batch Submission
 
-If you are new to the Arria 10 GX PAC card with OpenCL, check out this quick start guide:\
-https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/ug/ug-qs-ias-opencl-a10.pdf
+The batch script attached above can be used to launch the OpenCL emulation flow, followed by the compilation and FPGA board programming flow using aocl commands. **Adjust commands within the script to your own needs.**
+
+From the headnode login-2, run this command:
+
+```bash
+qsub -q batch@v-qsvr-fpga -l nodes=arria10:ppn=2 -d . A10_opencl_batch.sh
+```
+
+To see the resulting terminal output, consult the files:
+
+A10_opencl_batch.sh.exxxxxx
+A10_opencl_batch.sh.oxxxxxx
+
+xxxxxxx is a unique job ID. The .exxxxxx file is the error log and the .oxxxxxx file is the terminal log where success or failure of the commands can be determined. Note that log files dont get updated until the end of the job.
+
+## 2    Interactive Walkthrough
+
+If you are new to the Arria 10 GX PAC card with OpenCL, check out this quick start guide:
+ https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/ug/ug-qs-ias-opencl-a10.pdf
 
 Note: As of March 30, 2021, the prior version of Arria 10 PAC v1.2 is no longer supported.
+
+Note: Please use batch mode whenever possible
 
 This demonstration will step the user through the following steps:
 
@@ -17,15 +36,16 @@ This demonstration will step the user through the following steps:
 2. Load the appropriate tools
 3. Copy over the sample OpenCL design
 4. Take the sample design and compile for emulation mode (kernels will run on the CPU)
-5. Compile the application software using the gcc C compiler
+5. Compile  the application software using the gcc C compiler
 6. Execute in emulation mode
-7. Convert the OpenCL code to RTL and into an FPGA executable 
+7. Convert the OpenCL code to RTL and into an FPGA executable
 8. Download the OpenCL FPGA bitstream to the PAC card
-9. Run the application software on the host and show that the host CPU  and FPGA interact to solve heterogenous workloads. Results should be comparable to emulation mode, with improved throughput.
+9. Run the application software on the host and show that the host CPU and FPGA     interact to solve heterogenous workloads. Results should be comparable to     emulation mode, with improved throughput.
 
-<br/>
 
-## 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Assumptions
+
+
+## 3   Assumptions
 
 This lab assumes the following:
 
@@ -34,37 +54,54 @@ This lab assumes the following:
 - Intel Devcloud registration and SSH key set up
 - MobaXterm installed and set up, X2Go optional
 
-<br/>
 
-## 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Walkthrough
+
+
+## 4    Walkthrough
 
 #### 3.1 Initial Setup
 
-Run the devcloud_login function and connect to an Arria 10 capable node. This function is available in the script: /data/intel_fpga/devcloudLoginToolSetup.sh .
-
-<img src="https://user-images.githubusercontent.com/59750149/83576210-129e0280-a4e6-11ea-8f32-46af9ff40a4d.png" alt="image" width=70% />
-
-Select option 1 or option 5 and connect to an Arria 10 ready compute node.
-
-Once on this node, run tools_setup. 
-
-```
-tools_setup
+```bash
+pbsnodes -s v-qsvr-fpga
 ```
 
-Select the Arria 10 PAC Compilation and Programming - RTL AFU, OpenCL option version 1.2.1.
+This will bring up a list of available open cl nodes on the fpga. Look for a node that has the “arria” property as well as a state of “state=free”. Keep track of the node name.
+
+Open an interactive session with 
+
+```bash
+qsub -q batch@v-qsvr-fpga -I -l nodes=*node_name*:ppn=2
+```
+
+or to have qsub find you an appropriate node run
+
+```bash
+qsub -q batch@v-qsvr-fpga -I -l nodes=arria10:ppn=
+```
+
+Once on this node, run the commands
+
+```bash
+source /glob/development-tools/versions/fpgasupportstack/a10/1.2.1/intelFPGA_pro/hld/init_opencl.sh
+
+source /glob/development-tools/versions/fpgasupportstack/a10/1.2.1/inteldevstack/init_env.sh
+
+export FPGA_BBB_CCI_SRC=/usr/local/intel-fpga-bbb
+
+export PATH=/glob/intel-python/python2/bin:${PATH}
+```
 
 Make working directory
 
-```bash
+```
 mkdir A10_OPENCL_AFU
 ```
 
-We will then copy the example folder into this project folder. 
+We will then copy the example folder into this project folder.
 
 Type this into the terminal:
 
-```bash
+```
 cp -r /opt/intelFPGA_pro/quartus_19.2.0b57/hld/examples_aoc/hello_world A10_OPENCL_AFU
 cp -r /opt/intelFPGA_pro/quartus_19.2.0b57/hld/examples_aoc/common A10_OPENCL_AFU
 cd A10_OPENCL_AFU
@@ -94,8 +131,7 @@ The next step is to compile the host code. Note: use make clean followed by make
 make
 ```
 
-Now run for the host code binary.
-Note that the with the environment setting shown, the host code knows the .aocx file is for emulation execution on the CPU and not on the FPGA card.
+Now run for the host code binary. Note that the with the environment setting shown, the host code knows the .aocx file is for emulation execution on the CPU and not on the FPGA card.
 
 For version 1.2.1, you need to run emulation with this command:
 
@@ -113,30 +149,25 @@ Now that you have emulated your design, you can run the steps to convert OpenCL 
 aoc device/hello_world.cl -o bin/hello_world_fpga.aocx -board=pac_a10
 ```
 
-
-
 #### 3.4 Converting the 1.2.1 version of .aocx to an unsigned .aocx file
 
 ```
 cd bin
-```
-
-```
 source $AOCL_BOARD_PACKAGE_ROOT/linux64/libexec/sign_aocx.sh -H openssl_manager -i hello_world_fpga.aocx -r NULL -k NULL -o hello_world_fpga_unsigned.aocx
 ```
 
 Because no root key or code signing key is provided, the script asks if you would like to create an unsigned bitstream, as shown below. Type Y to accept an unsigned bitstream.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;No root key specified.  Generate unsigned bitstream? Y = yes, N = no: **Y**\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;No CSK specified.  Generate unsigned bitstream? Y = yes, N = no: **Y**
+​     No root key specified. Generate unsigned bitstream? Y = yes, N = no: **Y**
+​     No CSK specified. Generate unsigned bitstream? Y = yes, N = no: **Y**
 
 #### 3.5 Downloading the bit stream into the PAC card
 
 The executable that you run on the FPGA on the PAC card is called an .aocx file (Altera OpenCL executable).
 
-To see what FPGA accelerator cards are available, we type the following into the terminal. 
+To see what FPGA accelerator cards are available, we type the following into the terminal.
 
-```bash
+```
 aoc --list-boards
 ```
 
@@ -148,7 +179,7 @@ aocl diagnose
 
 Observe that the device name is acl0.
 
-Next, you need to create the unsigned version of the .aocx file. 
+Next, you need to create the unsigned version of the .aocx file.
 
 #### 3.6 Programming the Arria 10 GX PAC Card
 
@@ -158,34 +189,13 @@ Next, you will program the PAC card with hello_world_fpga_unsigned.aocx (version
 aocl program acl0 hello_world_fpga_unsigned.aocx
 ```
 
-
-
-#### 3.7 Running the host code 
+#### 3.7 Running the host code
 
 You have already run `make` to build the CPU host executable in the prior section, so it's not necessary to compile the host code again. Simply run the following command to run a heterogeneous workload that combines CPU and FPGA execution to utilizing the CPU and FPGA working in tandem.
 
-```bash
+```
 ./host
 ```
-
-
-
-## 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Batch Submission
-
-The batch script attached above  can be use to launch the OpenCL emulation flow, followed by the compilation and FPGA board programming flow using aocl commands. **Adjust commands within the script to your own needs.**
-
-From the headnode login-2, run this command:
-
-```
-devcloud_login -b A10PAC 1.2.1 A10_v1.2.1_opencl_batch.sh
-```
-
-To see the resulting terminal output, consult the files:
-
-A10_v1.2.1_opencl_batch.sh.exxxxxx\
-A10_v1.2.1_opencl_batch.sh.oxxxxxx
-
-xxxxxxx is a unique job ID. The .exxxxxx file is the error log and the .oxxxxxx file is the terminal log where success or failure of the commands can be determined. Note that log files dont get updated until the end of the job.
 
 <br/>
 
@@ -193,15 +203,16 @@ xxxxxxx is a unique job ID. The .exxxxxx file is the error log and the .oxxxxxx 
 
 List the revision history for the application note.
 
-| Name             | Date      | Changes                                      |
-| ---------------- | --------- | :------------------------------------------- |
-| Larry Landis     | 4/2/2020  | Initial Release                              |
-| Larry Landis     | 4/28/2020 | Added sign_aocx.sh for v1.2.1                |
-| Larry Landis     | 5/8/2020  | ./bin/host -emulator argument for v1.2.1     |
-| Damaris Renteria | 5/29/2020 | Added batch script                           |
-| Larry Landis     | 8/5/2020  | Misc edits per Ruben feedback                |
-| Larry Landis     | 4/6/2021  | Remove 1.2 commands as we only support 1.2.1 |
-| Larry Landis     | 4/30/2021 | Clarify flow for v1.2.1                      |
+| Name              | Date      | Changes                                                      |
+| ----------------- | --------- | :----------------------------------------------------------- |
+| Larry Landis      | 4/2/2020  | Initial Release                                              |
+| Larry Landis      | 4/28/2020 | Added sign_aocx.sh for v1.2.1                                |
+| Larry Landis      | 5/8/2020  | ./bin/host -emulator argument for v1.2.1                     |
+| Damaris Renteria  | 5/29/2020 | Added batch script                                           |
+| Larry Landis      | 8/5/2020  | Misc edits per Ruben feedback                                |
+| Larry Landis      | 4/6/2021  | Remove 1.2 commands as we only support 1.2.1                 |
+| Larry Landis      | 4/30/2021 | Clarify flow for v1.2.1                                      |
+| Jeffrey Okurowski | 11/4/21   | Made Batch mode a priority. Removed references to tools_setup and devcloud_login v1.3 |
 
 
 
